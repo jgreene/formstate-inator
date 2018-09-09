@@ -32,7 +32,7 @@ export type InputState<TValue> = {
 };
 
 function isInputState(input: any): input is InputState<any> {
-    return input.isInputStateImpl;
+    return input && input.isInputStateImpl === true;
 }
 
 export type FormStateType<T> = {
@@ -114,6 +114,7 @@ function applyErrorsToFormState(result: any, input: InputState<any>) {
 }
 
 export function deriveFormState<T>(input: T): FormState<T> {
+
     const runValidation = function(current: InputState<any>, form: FormState<T>): void {
         validate(form.model as any, current.path).then(result => {
 
@@ -185,7 +186,6 @@ function getInputStateImpl<T>(input: T, fireChange: Function, parent: any, path:
         errors: errors,
         visible: false,
         disabled: false,
-        dirty: false,
         touched: false,
         required: required,
         path: path,
@@ -216,12 +216,79 @@ function getInputStateImpl<T>(input: T, fireChange: Function, parent: any, path:
         onChange(value: T) {
             run(() => {
                 this.value = value;
-        
-                this.dirty = true;
 
                 fireChange(this);
             });
+        },
+
+        get dirty() {          
+            return deepEquals(this.value, input) === false;
         }
     }
     return res;
+}
+
+function deepEquals(a: any, b: any): boolean {
+    if(a === b){
+        return true;
+    }
+
+    if(isInputState(a)){
+        return deepEquals(a.value, b);
+    }
+
+    if(isInputState(b)){
+        return deepEquals(a, b.value);
+    }
+
+    const isArray = Array.isArray(a);
+    const keys = isArray ? [] : Object.keys(a);
+
+    if(isPrimitive(a) && isPrimitive(b))
+    {
+        return a === b;
+    }
+    else if(isArray)
+    {
+        if(Array.isArray(b))
+        {
+            if(a.length !== b.length)
+            {
+                return false;
+            }
+
+            for(var i = 0; i < a.length; i++){
+                var av = a[i];
+                var bv = b[i];
+                if(!deepEquals(av, bv))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+    else if (keys.length > 0)
+    {
+        if(Object.keys(b).length !== keys.length)
+        {
+            return false;
+        }
+        
+        for(var i = 0; i < keys.length; i++)
+        {
+            const key = keys[i];
+            const av = a[key];
+            const bv = b[key];
+            if(!deepEquals(av, bv))
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }

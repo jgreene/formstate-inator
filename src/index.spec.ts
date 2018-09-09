@@ -42,7 +42,7 @@ register<Person>(Person, {
 
 class PersonFormState {
     constructor(public state: FormState<Person>){
-
+        
     }
 
     @computed get FullName() {
@@ -159,5 +159,40 @@ describe('Person formstate', () => {
         expect(state.value.Birthdate.errors.length).eq(0);
     });
 
-    
+    it('Not setting a child value means nothing is dirty', async () => {
+        let person = new Person({ FirstName: 'Test' });
+        const state = deriveFormState(person);
+
+        expect(state.dirty).eq(false);
+    });
+
+    it('Setting a child value marks parent as dirty', async () => {
+        let person = new Person({ FirstName: 'Test' });
+        const state = deriveFormState(person);
+
+        state.value.FirstName.onChange('Change First');
+        expect(state.dirty).eq(true);
+    });
+
+    it('Setting a deep child value marks all parents as dirty', async () => {
+        let person = new Person({ FirstName: 'Test' });
+        const state = deriveFormState(person);
+
+        state.value.Address.value.StreetAddress1.onChange('123 St');
+
+        expect(state.value.Address.dirty).eq(true);
+        expect(state.dirty).eq(true);
+        expect(state.value.Addresses.dirty).eq(false);
+    });
+
+    it('Setting a child value marks parent as dirty and resetting to previous value marks parent as not dirty', async () => {
+        let person = new Person({ FirstName: 'Test' });
+        const state = deriveFormState(person);
+
+        state.value.FirstName.onChange('Change First');
+        expect(state.dirty).eq(true);
+
+        state.value.FirstName.onChange('Test');
+        expect(state.dirty).eq(false);
+    });
 });
