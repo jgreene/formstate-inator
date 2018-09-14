@@ -210,4 +210,39 @@ describe('Person formstate', () => {
         state.value.FirstName.onChange('Test');
         expect(state.dirty).eq(false);
     });
+
+    const getTag = (type: t.Type<any>) => (type as any)['_tag'] as string;
+
+    it('FormState has type metadata associated with it', async () => {
+        let person = new Person({ FirstName: 'Test' });
+        const state = deriveFormState(person);
+
+        expect(state.type).is.not.null;
+        expect(getTag(state.type)).eq('InterfaceType');
+    });
+
+    it('Children have correct associated type in FormState', async () => {
+        let person = new Person({ FirstName: 'Test' });
+        const state = deriveFormState(person);
+
+        expect(getTag(state.value.Address.value.City.value.Name.type)).eq('StringType');
+    });
+
+    it('Child array has correct associated type in FormState', async () => {
+        let person = new Person({ FirstName: 'Test' });
+        const state = deriveFormState(person);
+
+        expect(getTag(state.value.Addresses.type)).eq('ArrayType');
+    });
+
+    it('Child of array has correct associated type in FormState', async () => {
+        let address = new Address({ StreetAddress1: 'Test Street1'});
+        let person = new Person({ FirstName: 'Test', Address: address});
+        person.Addresses.push(address);
+        person.Addresses.push(address);
+        const state = deriveFormState(person);
+
+        expect(getTag(state.value.Addresses.value[0].type)).eq('InterfaceType');
+        expect(getTag(state.value.Addresses.value[0].value.StreetAddress1.type)).eq('StringType');
+    });
 });
