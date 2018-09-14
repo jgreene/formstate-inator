@@ -62,6 +62,19 @@ export type FormState<T> = InputState<FormStateType<T>> & IFormModel<T>
 
 export type Constructor<T = {}> = new (...args: any[]) => T;
 
+function getType(input: any): t.InterfaceType<any> | null {
+    if(input && input.getType) {
+        let t = input.getType();
+        if(t){
+            const tag = (t as any)['_tag'];
+            if(tag === "InterfaceType"){
+                return t as t.InterfaceType<any>;
+            }
+        }
+    }
+
+    return null;
+}
 
 function getInputState(input: any, triggerValidation: Function, type: t.Type<any>, parent: any = null, path: string = '', required: boolean = false): any
 {
@@ -79,6 +92,7 @@ function getInputState(input: any, triggerValidation: Function, type: t.Type<any
 
     const keys = Object.keys(input);
     if(keys.length > 0){
+        let inputType = getType(input) || type;
         const requiredFields: any = getRequiredFieldsFor(input.constructor);
         const isRequiredField = (field: string) => requiredFields[field] === true;
 
@@ -86,7 +100,7 @@ function getInputState(input: any, triggerValidation: Function, type: t.Type<any
         keys.forEach(k => {
             const value: any = input[k];
             const required = isRequiredField(k);
-            const propType = (type as any).props[k];
+            const propType = (inputType as any).props[k];
             record[k] = getInputState(value, triggerValidation, propType, record, path + '.' + k, required);
         });
 

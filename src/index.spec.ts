@@ -30,6 +30,7 @@ const PersonType = t.type({
     LastName: t.string,
     MiddleName: t.union([t.string, t.null]),
     Address: tdc.ref(Address),
+    Address2: t.union([tdc.ref(Address), t.null]),
     Addresses: t.array(tdc.ref(Address)),
     Birthdate: t.union([tdc.DateTime, t.null])
 });
@@ -244,5 +245,20 @@ describe('Person formstate', () => {
 
         expect(getTag(state.value.Addresses.value[0].type)).eq('InterfaceType');
         expect(getTag(state.value.Addresses.value[0].value.StreetAddress1.type)).eq('StringType');
+    });
+
+    it('Child union has correct associated type in FormState', async () => {
+        let person = new Person({ FirstName: 'Test', Address2: null  });
+        const state = deriveFormState(person);
+
+        expect(getTag(state.value.Address2.type)).eq('UnionType');
+    });
+
+    it('Child union has correct associated type in FormState', async () => {
+        let address = new Address({ StreetAddress1: 'Test Street1'});
+        let person = new Person({ FirstName: 'Test', Address2: address  });
+        const state = deriveFormState(person);
+
+        expect(getTag(state.value.Address2.type)).eq('UnionType');
     });
 });
