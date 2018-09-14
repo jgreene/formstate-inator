@@ -28,6 +28,7 @@ export type InputState<TValue> = {
     setVisibility(visible: boolean): void;
     setDisabled(disabled: boolean): void;
     setRequired(required: boolean): void;
+    validate(): void;
     onChange(newValue: TValue): void;
 };
 
@@ -57,17 +58,17 @@ export type FormState<T> = InputState<FormStateType<T>> & IFormModel<T>
 
 export type Constructor<T = {}> = new (...args: any[]) => T;
 
-function getInputState(input: any, fireChange: Function, parent: any = null, path: string = '', required: boolean = false): any
+function getInputState(input: any, triggerValidation: Function, parent: any = null, path: string = '', required: boolean = false): any
 {
     if(isPrimitive(input))
     {
-        return getInputStateImpl(input, fireChange, parent, path, required) as any;
+        return getInputStateImpl(input, triggerValidation, parent, path, required) as any;
     }
 
     if(input instanceof Array || Array.isArray(input))
     {
-        const res: any = input.map((entry: any, i: number) => getInputState(entry, fireChange, input, path + '[' + i + ']'));
-        return getInputStateImpl(res, fireChange, parent, path) as any;
+        const res: any = input.map((entry: any, i: number) => getInputState(entry, triggerValidation, input, path + '[' + i + ']'));
+        return getInputStateImpl(res, triggerValidation, parent, path) as any;
     }
 
     const keys = Object.keys(input);
@@ -79,10 +80,10 @@ function getInputState(input: any, fireChange: Function, parent: any = null, pat
         keys.forEach(k => {
             const value: any = input[k];
             const required = isRequiredField(k);
-            record[k] = getInputState(value, fireChange, record, path + '.' + k, required);
+            record[k] = getInputState(value, triggerValidation, record, path + '.' + k, required);
         });
 
-        return getInputStateImpl(record, fireChange, parent, path) as any;
+        return getInputStateImpl(record, triggerValidation, parent, path) as any;
     }
 
     throw 'Could not create inputstate from ' + JSON.stringify(input);
@@ -116,13 +117,12 @@ function applyErrorsToFormState(result: any, input: InputState<any>) {
 export function deriveFormState<T>(input: T): FormState<T> {
     const runValidation = function(current: InputState<any>, form: FormState<T>): void {
         validate(form.model as any, current.path).then(result => {
-
             applyErrorsToFormState(result, form);
         });
     };
 
     var getFormState: () => FormState<T> | undefined = () => undefined;
-    const trigger = (current: InputState<any>) => {
+    const triggerValidation = (current: InputState<any>) => {
         let form = getFormState();
         if(form !== undefined)
         {
@@ -130,7 +130,7 @@ export function deriveFormState<T>(input: T): FormState<T> {
         }
     };
 
-    const state = getInputState(input, trigger);
+    const state = getInputState(input, triggerValidation);
     const obs = observable(state);
     extendObservable(obs, {
         get model(): T { return new (input as any).constructor(getFormModel<T>(this as any) as any); },
@@ -173,7 +173,7 @@ export function getFormModel<T>(state: FormState<T>): ModelState<T> {
     return getInputModel(state);
 }
 
-function getInputStateImpl<T>(input: T, fireChange: Function, parent: any, path: string, required: boolean = false): InputState<T> {
+function getInputStateImpl<T>(input: T, triggerValidation: Function, parent: any, path: string, required: boolean = false): InputState<T> {
     const errors: string[] = [];
     const run = (func: () => void) => {
         runInAction(func);
@@ -212,6 +212,12 @@ function getInputStateImpl<T>(input: T, fireChange: Function, parent: any, path:
                 this.required = required;
             });
         },
+
+        validate() {
+            run(() => {
+                triggerValidation(this);
+            });
+        },
     
         onChange(value: T) {
             run(() => {
@@ -219,7 +225,7 @@ function getInputStateImpl<T>(input: T, fireChange: Function, parent: any, path:
         
                 this.dirty = true;
 
-                fireChange(this);
+                this.validate();
             });
         }
     }

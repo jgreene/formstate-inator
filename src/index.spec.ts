@@ -5,7 +5,7 @@ import * as t from 'io-ts';
 import * as tdc from 'io-ts-derive-class'
 import { computed } from 'mobx';
 import * as moment from 'moment';
-import { register } from 'validator-inator';
+import { register, required } from 'validator-inator';
 
 import { deriveFormState, FormState } from './index';
 
@@ -37,7 +37,11 @@ const PersonType = t.type({
 class Person extends tdc.DeriveClass(PersonType) {}
 
 register<Person>(Person, {
-    FirstName: (p) => p.FirstName.length > 8 ? "First Name may not be longer than 8 characters!" : null
+    FirstName: (p) => p.FirstName.length > 8 ? "First Name may not be longer than 8 characters!" : null,
+    Birthdate: [
+        required(),
+        (p) => p.Birthdate != null && p.Birthdate.isAfter(moment('01/01/2018', 'MM/DD/YYYY').add(-1, "day")) ? 'Cannot be born this year' : null
+    ]
 })
 
 class PersonFormState {
@@ -153,11 +157,19 @@ describe('Person formstate', () => {
 
         expect(state.value.FirstName.errors.length).eq(0);
         
-        let date: any = moment('2018-01-18');
+        let date: any = moment('2017-01-18');
         state.value.Birthdate.onChange(date);
         await sleep(1);
         expect(state.value.Birthdate.errors.length).eq(0);
     });
 
-    
+    it('Birthdate is required', async () => {
+        let person = new Person({ FirstName: 'Test' });
+        const state = deriveFormState(person);
+        expect(state.value.Birthdate.value).eq(null);
+        
+        state.value.Birthdate.validate();
+        await sleep(1);
+        expect(state.value.Birthdate.errors.length).eq(1);
+    });
 });
