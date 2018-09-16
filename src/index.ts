@@ -329,11 +329,11 @@ function deepEquals(a: any, b: any): boolean {
     }
 
     if(isFormStateArray(a)) {
-        return deepEquals((a as any).innerItems, b);
+        return deepEquals((a as any).items, b);
     }
 
     if(isFormStateArray(b)) {
-        return deepEquals(a, (b as any).innerItems);
+        return deepEquals(a, (b as any).items);
     }
 
     const isArray = Array.isArray(a);
