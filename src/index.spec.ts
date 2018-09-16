@@ -121,8 +121,8 @@ describe('Person formstate', () => {
         
         expect(state.value.Address.value.StreetAddress1.path).eq('.Address.StreetAddress1');
         expect(state.value.Addresses.path).eq('.Addresses');
-        expect(state.value.Addresses.value[0].value.StreetAddress1.path).eq('.Addresses[0].StreetAddress1');
-        expect(state.value.Addresses.value[1].value.StreetAddress1.path).eq('.Addresses[1].StreetAddress1');
+        expect(state.value.Addresses.value.getItem(0).value.StreetAddress1.path).eq('.Addresses[0].StreetAddress1');
+        expect(state.value.Addresses.value.getItem(1).value.StreetAddress1.path).eq('.Addresses[1].StreetAddress1');
     });
 
     it('Setting an invalid value updates errors in form state on next cycle', async () => {
@@ -243,22 +243,66 @@ describe('Person formstate', () => {
         person.Addresses.push(address);
         const state = deriveFormState(person);
 
-        expect(getTag(state.value.Addresses.value[0].type)).eq('InterfaceType');
-        expect(getTag(state.value.Addresses.value[0].value.StreetAddress1.type)).eq('StringType');
+        expect(getTag(state.value.Addresses.value.getItem(0).type)).eq('InterfaceType');
+        expect(getTag(state.value.Addresses.value.getItem(0).value.StreetAddress1.type)).eq('StringType');
     });
 
-    it('Child union has correct associated type in FormState', async () => {
+    it('Child union has correct associated type in FormState when null', async () => {
         let person = new Person({ FirstName: 'Test', Address2: null  });
         const state = deriveFormState(person);
 
         expect(getTag(state.value.Address2.type)).eq('UnionType');
     });
 
-    it('Child union has correct associated type in FormState', async () => {
+    it('Child union has correct associated type in FormState when not null', async () => {
         let address = new Address({ StreetAddress1: 'Test Street1'});
         let person = new Person({ FirstName: 'Test', Address2: address  });
         const state = deriveFormState(person);
 
         expect(getTag(state.value.Address2.type)).eq('UnionType');
+    });
+
+    it('Can add to array in formstate', async () => {
+        let person = new Person({ FirstName: 'test' });
+        let state = deriveFormState(person);
+
+        expect(state.value.Addresses.value.length).eq(0);
+        state.value.Addresses.value.push(new Address({ StreetAddress1: 'Test Street1' }));
+
+        expect(state.value.Addresses.value.length).eq(1);
+        expect(state.value.Addresses.value.getItem(0).value.StreetAddress1.value).eq('Test Street1');
+    });
+
+    it('Can remove from array in formstate', async () => {
+        let person = new Person({ FirstName: 'test' });
+        let state = deriveFormState(person);
+
+        expect(state.value.Addresses.value.length).eq(0);
+        state.value.Addresses.value.push(new Address({ StreetAddress1: 'Test Street1' }));
+        state.value.Addresses.value.push(new Address({ StreetAddress1: 'Test2 Street1' }));
+
+        expect(state.value.Addresses.value.length).eq(2);
+        expect(state.value.Addresses.value.getItem(0).value.StreetAddress1.value).eq('Test Street1');
+        
+        state.value.Addresses.value.remove(0);
+        
+        expect(state.value.Addresses.value.length).eq(1);
+        expect(state.value.Addresses.value.getItem(0).value.StreetAddress1.value).eq('Test2 Street1');
+    });
+
+    it('Can map over formstate array', async () => {
+        let person = new Person({ FirstName: 'test' });
+        let state = deriveFormState(person);
+
+        expect(state.value.Addresses.value.length).eq(0);
+        state.value.Addresses.value.push(new Address({ StreetAddress1: 'Test Street1' }));
+        state.value.Addresses.value.push(new Address({ StreetAddress1: 'Test2 Street1' }));
+
+        let street1s = state.value.Addresses.value.map(add => add.value.StreetAddress1.value);
+
+        expect(street1s.length).eq(2);
+        expect(street1s[0]).eq('Test Street1');
+        expect(street1s[1]).eq('Test2 Street1');
+        
     });
 });

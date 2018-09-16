@@ -40,10 +40,73 @@ function isInputState(input: any): input is InputState<any> {
     return input && input.isInputStateImpl === true;
 }
 
+export interface FormStateArray<T> {
+    length: number;
+    getItem(index: number): FormState<T>;
+    add(item: T): void;
+    push(item: T): void;
+    remove(index: number): void;
+    map<U>(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => U): U[];
+    forEach(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => void): void;
+    filter(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => any): FormState<T>[];
+}
+
+class FormStateInnerArrayType<T> implements FormStateArray<T> {
+    readonly isFormStateInnerArrayType = true;
+    
+    constructor(
+        private items: Array<FormState<T>>, 
+        private triggerValidation: Function, 
+        private type: t.Type<any>, 
+        private parent: any,
+        private path: string
+    ){
+        this.items = items;
+    }
+
+    public getItem(index: number) {
+        return this.items[index];
+    }
+
+    public get length() {
+        return this.items.length;
+    }
+
+    public add<T>(item: T) {
+        let inputState = getInputState(item, this.triggerValidation, this.type, this.parent, this.path + '[' + this.length + ']');
+        this.items.push(inputState);
+    }
+
+    public push<T>(item: T) {
+        this.add(item);
+    }
+
+    public remove(index: number) {
+        this.items.splice(index, 1);
+    }
+
+    public map<U>(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => U): U[] {
+        return this.items.map(callbackfn);
+    }
+
+    public forEach(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => void): void {
+        this.items.forEach(callbackfn);
+    }
+
+    public filter(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => any): FormState<T>[] {
+        return this.items.filter(callbackfn);
+    }
+}
+
+function isFormStateInnerArrayType(input: any): input is FormStateInnerArrayType<any> {
+    return input && input.isFormStateInnerArrayType === true;
+}
+
+
 export type FormStateType<T> = {
     [P in keyof T]: T[P] extends Function ? never :
                     T[P] extends primitive ? InputState<T[P]> :
-                    T[P] extends Array<infer U> ? U extends primitive ? InputState<InputState<U>[]> : InputState<FormState<U>[]> :
+                    T[P] extends Array<infer U> ? U extends primitive ? InputState<InputState<U>[]> : InputState<FormStateArray<U>> :
                     InputState<FormStateType<T[P]>>;
 }
 
@@ -85,9 +148,10 @@ function getInputState(input: any, triggerValidation: Function, type: t.Type<any
 
     if(input instanceof Array || Array.isArray(input))
     {
-        let arrayType: t.ArrayType<any> = type as t.ArrayType<any>;
+        const arrayType: t.ArrayType<any> = type as t.ArrayType<any>;
         const res: any = input.map((entry: any, i: number) => getInputState(entry, triggerValidation, arrayType.type, input, path + '[' + i + ']'));
-        return getInputStateImpl(res, triggerValidation, type, parent, path) as any;
+        const formStateArray: any = new FormStateInnerArrayType(res, triggerValidation, arrayType.type, parent, path);
+        return getInputStateImpl(formStateArray, triggerValidation, type, parent, path) as any;
     }
 
     const keys = Object.keys(input);
@@ -171,6 +235,10 @@ function getInputModel(input: any): any {
 
     if(isInputState(input)){
         return getInputModel(input.value);
+    }
+
+    if(isFormStateInnerArrayType(input)){
+        return input.map((i: any) => getInputModel(i));
     }
 
     if(input instanceof Array || Array.isArray(input)){
