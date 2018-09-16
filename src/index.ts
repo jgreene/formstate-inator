@@ -51,57 +51,48 @@ export interface FormStateArray<T> {
     filter(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => any): FormState<T>[];
 }
 
-class FormStateInnerArrayType<T> implements FormStateArray<T> {
-    readonly isFormStateInnerArrayType = true;
-    
-    constructor(
-        private items: Array<FormState<T>>, 
-        private triggerValidation: Function, 
-        private type: t.Type<any>, 
-        private parent: any,
-        private path: string
-    ){
-        this.items = items;
-    }
+function getFormStateArray<T>(
+    originalItems: Array<FormState<T>>, 
+    triggerValidation: Function, 
+    type: t.Type<any>, 
+    parent: any,
+    path: string
+): FormStateArray<T> {
 
-    public getItem(index: number) {
-        return this.items[index];
-    }
-
-    public get length() {
-        return this.items.length;
-    }
-
-    public add<T>(item: T) {
-        let inputState = getInputState(item, this.triggerValidation, this.type, this.parent, this.path + '[' + this.length + ']');
-        this.items.push(inputState);
-    }
-
-    public push<T>(item: T) {
-        this.add(item);
-    }
-
-    public remove(index: number) {
-        this.items.splice(index, 1);
-    }
-
-    public map<U>(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => U): U[] {
-        return this.items.map(callbackfn);
-    }
-
-    public forEach(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => void): void {
-        this.items.forEach(callbackfn);
-    }
-
-    public filter(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => any): FormState<T>[] {
-        return this.items.filter(callbackfn);
-    }
+    return {
+        isFormStateArray: true,
+        items: originalItems,
+        get length(): number { return this.items.length; },
+        getItem(index: number) {
+            return this.items[index];
+        },
+        add(item: T) {
+            runInAction(() => {
+                let inputState = getInputState(item, triggerValidation, type, parent, path + '[' + this.length + ']');
+                this.items.push(inputState);
+            });
+        },
+        push(item: T) {
+            this.add(item);
+        },
+        remove(index: number) {
+            this.items.splice(index, 1)
+        },
+        map<U>(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => U): U[] {
+            return this.items.map(callbackfn);
+        },
+        forEach(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => void): void {
+            this.items.forEach(callbackfn);
+        },
+        filter(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => any): FormState<T>[] {
+            return this.items.filter(callbackfn);
+        }
+    } as any;
 }
 
-function isFormStateInnerArrayType(input: any): input is FormStateInnerArrayType<any> {
-    return input && input.isFormStateInnerArrayType === true;
+function isFormStateArray(input: any): input is FormStateArray<any> {
+    return input && input.isFormStateArray === true;
 }
-
 
 export type FormStateType<T> = {
     [P in keyof T]: T[P] extends Function ? never :
@@ -150,7 +141,7 @@ function getInputState(input: any, triggerValidation: Function, type: t.Type<any
     {
         const arrayType: t.ArrayType<any> = type as t.ArrayType<any>;
         const res: any = input.map((entry: any, i: number) => getInputState(entry, triggerValidation, arrayType.type, input, path + '[' + i + ']'));
-        const formStateArray: any = new FormStateInnerArrayType(res, triggerValidation, arrayType.type, parent, path);
+        const formStateArray: any = getFormStateArray(res, triggerValidation, arrayType.type, parent, path);
         return getInputStateImpl(formStateArray, triggerValidation, type, parent, path) as any;
     }
 
@@ -179,7 +170,7 @@ function applyErrorsToFormState(result: any, input: InputState<any>) {
         if(Array.isArray((result as any).errors)){
             input.setErrors((result as any).errors);
             result.forEach((r, i) => {
-                applyErrorsToFormState(r, input.value[i]);
+                applyErrorsToFormState(r, input.value.getItem(i));
             });
             return;
         } else {
@@ -237,7 +228,7 @@ function getInputModel(input: any): any {
         return getInputModel(input.value);
     }
 
-    if(isFormStateInnerArrayType(input)){
+    if(isFormStateArray(input)){
         return input.map((i: any) => getInputModel(i));
     }
 
@@ -335,6 +326,14 @@ function deepEquals(a: any, b: any): boolean {
 
     if(isInputState(b)){
         return deepEquals(a, b.value);
+    }
+
+    if(isFormStateArray(a)) {
+        return deepEquals((a as any).innerItems, b);
+    }
+
+    if(isFormStateArray(b)) {
+        return deepEquals(a, (b as any).innerItems);
     }
 
     const isArray = Array.isArray(a);

@@ -45,6 +45,10 @@ register<Person>(Person, {
     ]
 })
 
+register<Address>(Address, {
+    StreetAddress1: required()
+})
+
 class PersonFormState {
     constructor(public state: FormState<Person>){
         
@@ -285,7 +289,7 @@ describe('Person formstate', () => {
         expect(state.value.Addresses.value.getItem(0).value.StreetAddress1.value).eq('Test Street1');
         
         state.value.Addresses.value.remove(0);
-        
+
         expect(state.value.Addresses.value.length).eq(1);
         expect(state.value.Addresses.value.getItem(0).value.StreetAddress1.value).eq('Test2 Street1');
     });
@@ -303,6 +307,15 @@ describe('Person formstate', () => {
         expect(street1s.length).eq(2);
         expect(street1s[0]).eq('Test Street1');
         expect(street1s[1]).eq('Test2 Street1');
+    });
+
+    it('Can validate address in array', async () => {
+        let person = new Person({ FirstName: 'test', Addresses: [new Address()]});
+        let state = deriveFormState(person);
+
+        state.value.Addresses.value.getItem(0).value.StreetAddress1.validate();
+        await sleep(1);
+        expect(state.value.Addresses.value.getItem(0).value.StreetAddress1.errors.length).eq(1);
         
     });
 });
