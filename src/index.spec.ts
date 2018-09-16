@@ -318,4 +318,25 @@ describe('Person formstate', () => {
         expect(state.value.Addresses.value.getItem(0).value.StreetAddress1.errors.length).eq(1);
         
     });
+
+    it('Path updates when array item is removed', async () => {
+
+        let person = new Person({ FirstName: 'test' });
+        let state = deriveFormState(person);
+
+        expect(state.value.Addresses.value.length).eq(0);
+        state.value.Addresses.value.push(new Address({ StreetAddress1: 'Test Street1' }));
+        state.value.Addresses.value.push(new Address({ StreetAddress1: 'Test2 Street1' }));
+
+        expect(state.value.Addresses.value.length).eq(2);
+        //expect(state.value.Addresses.value.getItem(0).value.StreetAddress1.path).eq('.Addresses[0].StreetAddress1');
+        expect(state.value.Addresses.value.getItem(0).value.StreetAddress1.value).eq('Test Street1');
+        
+        state.value.Addresses.value.remove(0);
+
+        expect(state.value.Addresses.value.length).eq(1);
+        expect(state.value.Addresses.value.getItem(0).value.StreetAddress1.path).eq('.Addresses[0].StreetAddress1');
+        expect(state.value.Addresses.value.getItem(0).value.StreetAddress1.value).eq('Test2 Street1');
+
+    });
 });

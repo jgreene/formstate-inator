@@ -55,8 +55,7 @@ function getFormStateArray<T>(
     originalItems: Array<FormState<T>>, 
     triggerValidation: Function, 
     type: t.Type<any>, 
-    parent: any,
-    path: string
+    pathCtx: PathContext
 ): FormStateArray<T> {
 
     return {
@@ -68,7 +67,7 @@ function getFormStateArray<T>(
         },
         add(item: T) {
             runInAction(() => {
-                let inputState = getInputState(item, triggerValidation, type, parent, path + '[' + this.length + ']');
+                let inputState = getInputState(item, triggerValidation, type, observable({ parent: () => pathCtx, index: this.length}));
                 this.items.push(inputState);
             });
         },
@@ -76,7 +75,14 @@ function getFormStateArray<T>(
             this.add(item);
         },
         remove(index: number) {
-            this.items.splice(index, 1)
+            runInAction(() => {
+                this.items.splice(index, 1);
+                let items: FormState<T>[] = this.items;
+                for(var i = 0; i < items.length; i++){
+                    var item: any = items[i];
+                    item.pathCtx.index = i;
+                }
+            });
         },
         map<U>(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => U): U[] {
             return this.items.map(callbackfn);
@@ -130,19 +136,27 @@ function getType(input: any): t.InterfaceType<any> | null {
     return null;
 }
 
-function getInputState(input: any, triggerValidation: Function, type: t.Type<any>, parent: any = null, path: string = '', required: boolean = false): any
+type PathContext = {
+    parent?: () => PathContext;
+    index?: number;
+    name?: string;
+};
+
+function getInputState(input: any, triggerValidation: Function, type: t.Type<any>, pathCtx: PathContext, required: boolean = false): any
 {
     if(isPrimitive(input))
     {
-        return getInputStateImpl(input, triggerValidation, type, parent, path, required) as any;
+        return getInputStateImpl(input, triggerValidation, type, pathCtx, required) as any;
     }
 
     if(input instanceof Array || Array.isArray(input))
     {
         const arrayType: t.ArrayType<any> = type as t.ArrayType<any>;
-        const res: any = input.map((entry: any, i: number) => getInputState(entry, triggerValidation, arrayType.type, input, path + '[' + i + ']'));
-        const formStateArray: any = getFormStateArray(res, triggerValidation, arrayType.type, parent, path);
-        return getInputStateImpl(formStateArray, triggerValidation, type, parent, path) as any;
+        const res: any = input.map((entry: any, i: number) => 
+                            getInputState(entry, triggerValidation, arrayType.type, observable({ parent: () => pathCtx, index: i}))
+                         );
+        const formStateArray: any = getFormStateArray(res, triggerValidation, arrayType.type, pathCtx);
+        return getInputStateImpl(formStateArray, triggerValidation, type, pathCtx) as any;
     }
 
     const keys = Object.keys(input);
@@ -156,10 +170,10 @@ function getInputState(input: any, triggerValidation: Function, type: t.Type<any
             const value: any = input[k];
             const required = isRequiredField(k);
             const propType = (inputType as any).props[k];
-            record[k] = getInputState(value, triggerValidation, propType, record, path + '.' + k, required);
+            record[k] = getInputState(value, triggerValidation, propType, observable({ parent: () => pathCtx, name: k}), required);
         });
 
-        return getInputStateImpl(record, triggerValidation, type, parent, path) as any;
+        return getInputStateImpl(record, triggerValidation, type, pathCtx) as any;
     }
 
     throw 'Could not create inputstate from ' + JSON.stringify(input);
@@ -207,7 +221,8 @@ export function deriveFormState<T extends tdc.ITyped<any>>(input: T): FormState<
         }
     };
 
-    const state = getInputState(input, triggerValidation, input.getType());
+    const pathCtx = observable({} as PathContext);
+    const state = getInputState(input, triggerValidation, input.getType(), pathCtx);
     const obs = observable(state);
     extendObservable(obs, {
         get model(): T { return new (input as any).constructor(getFormModel<T>(this as any) as any); },
@@ -254,7 +269,16 @@ export function getFormModel<T>(state: FormState<T>): ModelState<T> {
     return getInputModel(state);
 }
 
-function getInputStateImpl<T>(input: T, triggerValidation: Function, type: t.Type<any>, parent: any, path: string, required: boolean = false): InputState<T> {
+
+function getPathFromContext(ctx: PathContext): string {
+    let path = ctx.parent !== undefined ? getPathFromContext(ctx.parent()) : '';
+    path = ctx.index !== undefined ? path + '[' + ctx.index + ']' : path;
+    path = ctx.name !== undefined ? path + '.' + ctx.name : path;
+
+    return path;
+}
+
+function getInputStateImpl<T>(input: T, triggerValidation: Function, type: t.Type<any>, pathCtx: PathContext, required: boolean = false): InputState<T> {
     const errors: string[] = [];
     const run = (func: () => void) => {
         runInAction(func);
@@ -269,7 +293,11 @@ function getInputStateImpl<T>(input: T, triggerValidation: Function, type: t.Typ
         disabled: false,
         touched: false,
         required: required,
-        path: path,
+
+        pathCtx: pathCtx,
+        get path(): string {
+            return getPathFromContext(this.pathCtx);
+        },
 
         setErrors(errors: string[]) {
             run(() => {
