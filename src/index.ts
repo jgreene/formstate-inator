@@ -100,11 +100,15 @@ function isFormStateArray(input: any): input is FormStateArray<any> {
     return input && input.isFormStateArray === true;
 }
 
+export type SetState<T> = {
+    setValue(input: T): void;
+}
+
 export type FormStateType<T> = {
     [P in keyof T]: T[P] extends Function ? never :
                     T[P] extends primitive ? InputState<T[P]> :
                     T[P] extends Array<infer U> ? U extends primitive ? InputState<InputState<U>[]> : InputState<FormStateArray<U>> :
-                    InputState<FormStateType<T[P]>>;
+                    InputState<FormStateType<T[P]>> & SetState<T[P]>;
 }
 
 export type ModelState<T> = {
@@ -338,6 +342,13 @@ function getInputStateImpl<T>(input: T, triggerValidation: Function, type: t.Typ
 
         get dirty() {          
             return deepEquals(this.value, input) === false;
+        },
+
+        setValue(value: T) {
+            run(() => {
+                let newState = getInputState(value, triggerValidation, type, pathCtx);
+                this.value = newState.value;
+            })
         }
     }
     return res;

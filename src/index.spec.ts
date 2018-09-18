@@ -30,7 +30,7 @@ const PersonType = t.type({
     LastName: t.string,
     MiddleName: t.union([t.string, t.null]),
     Address: tdc.ref(Address),
-    Address2: t.union([tdc.ref(Address), t.null]),
+    NullableAddress: t.union([tdc.ref(Address), t.null]),
     Addresses: t.array(tdc.ref(Address)),
     Birthdate: t.union([tdc.DateTime, t.null])
 });
@@ -252,18 +252,18 @@ describe('Person formstate', () => {
     });
 
     it('Child union has correct associated type in FormState when null', async () => {
-        let person = new Person({ FirstName: 'Test', Address2: null  });
+        let person = new Person({ FirstName: 'Test', NullableAddress: null  });
         const state = deriveFormState(person);
 
-        expect(getTag(state.value.Address2.type)).eq('UnionType');
+        expect(getTag(state.value.NullableAddress.type)).eq('UnionType');
     });
 
     it('Child union has correct associated type in FormState when not null', async () => {
         let address = new Address({ StreetAddress1: 'Test Street1'});
-        let person = new Person({ FirstName: 'Test', Address2: address  });
+        let person = new Person({ FirstName: 'Test', NullableAddress: address  });
         const state = deriveFormState(person);
 
-        expect(getTag(state.value.Address2.type)).eq('UnionType');
+        expect(getTag(state.value.NullableAddress.type)).eq('UnionType');
     });
 
     it('Can add to array in formstate', async () => {
@@ -324,6 +324,8 @@ describe('Person formstate', () => {
         let person = new Person({ FirstName: 'test' });
         let state = deriveFormState(person);
 
+        
+
         expect(state.value.Addresses.value.length).eq(0);
         state.value.Addresses.value.push(new Address({ StreetAddress1: 'Test Street1' }));
         state.value.Addresses.value.push(new Address({ StreetAddress1: 'Test2 Street1' }));
@@ -339,4 +341,19 @@ describe('Person formstate', () => {
         expect(state.value.Addresses.value.getItem(0).value.StreetAddress1.value).eq('Test2 Street1');
 
     });
+
+    it('Can change reference to address', async () => {
+        let person = new Person({ FirstName: 'test' });
+        let state = deriveFormState(person);
+
+        expect(state.value.NullableAddress.value).is.null;
+
+        state.value.NullableAddress.setValue(new Address({ StreetAddress1: 'Test1'}));
+
+        expect(state.value.NullableAddress.value).is.not.null;
+        expect(state.value.NullableAddress.value!.StreetAddress1.value).eq('Test1');
+
+        state.value.NullableAddress.value!.StreetAddress1.onChange('Test2');
+        expect(state.value.NullableAddress.value!.StreetAddress1.value).eq('Test2');
+    })
 });
