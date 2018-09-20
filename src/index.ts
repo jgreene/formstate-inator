@@ -359,6 +359,8 @@ function deepEquals(a: any, b: any): boolean {
         return true;
     }
 
+    
+
     if(isInputState(a)){
         return deepEquals(a.value, b);
     }
@@ -375,14 +377,35 @@ function deepEquals(a: any, b: any): boolean {
         return deepEquals(a, (b as any).items);
     }
 
-    const isArray = Array.isArray(a);
-    const keys = isArray ? [] : Object.keys(a);
-
     if(isPrimitive(a) && isPrimitive(b))
     {
         return a === b;
     }
-    else if(isArray)
+
+    if(a === undefined && b !== undefined)
+    {
+        return false;
+    }
+
+    if(b === undefined && a !== undefined)
+    {
+        return false;
+    }
+
+    if(a === null && b !== null)
+    {
+        return false;
+    }
+
+    if(b === null && a !== null)
+    {
+        return false;
+    }
+
+    const isArray = Array.isArray(a);
+    const keys = isArray ? [] : Object.keys(a);
+    
+    if(isArray)
     {
         if(Array.isArray(b))
         {
