@@ -38,7 +38,10 @@ const PersonType = t.type({
 class Person extends tdc.DeriveClass(PersonType) {}
 
 register<Person>(Person, {
-    FirstName: (p) => p.FirstName.length > 8 ? "First Name may not be longer than 8 characters!" : null,
+    FirstName: [
+        (p) => p.FirstName.length > 8 ? "First Name may not be longer than 8 characters!" : null,
+        (p, original) => original!.FirstName === "FirstName" && p.FirstName === 'Original' ? "Original FirstName validation" : null
+    ],
     Birthdate: [
         required(),
         (p) => p.Birthdate != null && p.Birthdate.isAfter(moment('01/01/2018', 'MM/DD/YYYY').add(-1, "day")) ? 'Cannot be born this year' : null
@@ -324,8 +327,6 @@ describe('Person formstate', () => {
         let person = new Person({ FirstName: 'test' });
         let state = deriveFormState(person);
 
-        
-
         expect(state.value.Addresses.value.length).eq(0);
         state.value.Addresses.value.push(new Address({ StreetAddress1: 'Test Street1' }));
         state.value.Addresses.value.push(new Address({ StreetAddress1: 'Test2 Street1' }));
@@ -355,5 +356,18 @@ describe('Person formstate', () => {
 
         state.value.NullableAddress.value!.StreetAddress1.onChange('Test2');
         expect(state.value.NullableAddress.value!.StreetAddress1.value).eq('Test2');
-    })
+    });
+
+    it('Can validate against original FirstName', async () => {
+        let person = new Person({ FirstName: 'FirstName' });
+        let state = deriveFormState(person);
+
+        expect(state.value.FirstName.value).eq('FirstName');
+
+        state.value.FirstName.onChange('Original');
+
+        await sleep(1);
+
+        expect(state.value.FirstName.errors.length).eq(1);
+    });
 });

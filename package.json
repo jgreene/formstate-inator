@@ -1,6 +1,6 @@
 {
   "name": "formstate-inator",
-  "version": "0.0.35",
+  "version": "0.0.42",
   "files": [
     "lib"
   ],
@@ -17,7 +17,7 @@
     "moment": "^2.22.2",
     "reflect-metadata": "^0.1.12",
     "io-ts-derive-class": "^0.0.17",
-    "validator-inator": "^0.0.12",
+    "validator-inator": "^0.0.21",
     "mobx": "^5.1.0"
   },
   "devDependencies": {

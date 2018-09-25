@@ -211,7 +211,7 @@ function applyErrorsToFormState(result: any, input: InputState<any>) {
 export function deriveFormState<T extends tdc.ITyped<any>>(input: T): FormState<T> {
 
     const runValidation = function(current: InputState<any>, form: FormState<T>): void {
-        validate(form.model as any, current.path).then(result => {
+        validate(form.model as any, input, current.path).then(result => {
             applyErrorsToFormState(result, form);
         });
     };
@@ -229,7 +229,7 @@ export function deriveFormState<T extends tdc.ITyped<any>>(input: T): FormState<
     const state = getInputState(input, triggerValidation, input.getType(), pathCtx);
     const obs = observable(state);
     extendObservable(obs, {
-        get model(): T { return new (input as any).constructor(getFormModel<T>(this as any) as any); },
+        get model(): T { return new (input as any).constructor(getFormModel<T>(this as any) as any); }
     });
 
     getFormState = () => obs;
