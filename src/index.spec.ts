@@ -52,6 +52,14 @@ register<Address>(Address, {
     StreetAddress1: required()
 })
 
+const getValidPerson = () => {
+    return new Person({
+        FirstName: "First",
+        Birthdate: moment('01/01/2017', 'MM/DD/YYYY'),
+        Address: new Address({ StreetAddress1: "Street1" })
+    })
+}
+
 class PersonFormState {
     constructor(public state: FormState<Person>){
         
@@ -367,6 +375,25 @@ describe('Person formstate', () => {
         state.value.FirstName.onChange('Original');
 
         await sleep(1);
+
+        expect(state.value.FirstName.errors.length).eq(1);
+    });
+
+    it('Can validate entire form', async () => {
+        let person = getValidPerson();
+        let state = deriveFormState(person);
+
+        let isValid = await state.validate();
+        expect(isValid).eq(true);
+    });
+
+    it('Can validate entire form', async () => {
+        let person = getValidPerson();
+        person.FirstName = "asdflaskjdfas;ldfkj";
+        let state = deriveFormState(person);
+
+        let isValid = await state.validate();
+        expect(isValid).eq(false);
 
         expect(state.value.FirstName.errors.length).eq(1);
     });

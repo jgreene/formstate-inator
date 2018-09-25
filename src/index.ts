@@ -1,6 +1,6 @@
 import { observable, runInAction, extendObservable } from 'mobx';
 
-import { validate, getRequiredFieldsFor } from 'validator-inator';
+import { validate, getRequiredFieldsFor, isValid } from 'validator-inator';
 import * as t from 'io-ts';
 import * as tdc from 'io-ts-derive-class';
 
@@ -120,6 +120,7 @@ export type ModelState<T> = {
 
 export interface IFormModel<T> {
     readonly model: T;
+    validate(): Promise<boolean>;
 }
 
 export type FormState<T> = InputState<FormStateType<T>> & IFormModel<T>
@@ -227,6 +228,21 @@ export function deriveFormState<T extends tdc.ITyped<any>>(input: T): FormState<
 
     const pathCtx = observable({} as PathContext);
     const state = getInputState(input, triggerValidation, input.getType(), pathCtx);
+    state.validate = () => { 
+        return new Promise<boolean>(resolver => {
+            let form = getFormState();
+            if(form !== undefined){
+                validate(form.model, input).then(result => {
+                    const valid = isValid(result);
+                    if(!valid){
+                        applyErrorsToFormState(result, form as any);
+                    }
+                    resolver(valid);
+                });
+            }
+        });
+    };
+
     const obs = observable(state);
     extendObservable(obs, {
         get model(): T { return new (input as any).constructor(getFormModel<T>(this as any) as any); }
