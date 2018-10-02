@@ -1,6 +1,6 @@
 import { observable, runInAction, extendObservable } from 'mobx';
 
-import { validate, getRequiredFieldsFor, isValid } from 'validator-inator';
+import { validate, getRequiredFieldsFor, isValid, ValidationResult } from 'validator-inator';
 import * as t from 'io-ts';
 import * as tdc from 'io-ts-derive-class';
 
@@ -118,12 +118,19 @@ export type ModelState<T> = {
                     ModelState<T[P]>
 }
 
-export interface IFormModel<T> {
-    readonly model: T;
-    validate(): Promise<boolean>;
+export type FormValidationResult<T> = {
+    result: ValidationResult<T>
+    isValid: boolean   
 }
 
-export type FormState<T> = InputState<FormStateType<T>> & IFormModel<T>
+export interface IFormModel<T> {
+    readonly model: T;
+    validate(): Promise<FormValidationResult<T>>;
+}
+
+type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
+
+export type FormState<T> = Omit<InputState<FormStateType<T>>, "validate"> & IFormModel<T>;
 
 export type Constructor<T = {}> = new (...args: any[]) => T;
 
@@ -181,7 +188,7 @@ function getInputState(input: any, triggerValidation: Function, type: t.Type<any
         return getInputStateImpl(record, triggerValidation, type, pathCtx) as any;
     }
 
-    throw 'Could not create inputstate from ' + JSON.stringify(input);
+    throw new Error('Could not create inputstate from ' + JSON.stringify(input));
 }
 
 function applyErrorsToFormState(result: any, input: InputState<any>) {
@@ -229,17 +236,22 @@ export function deriveFormState<T extends tdc.ITyped<any>>(input: T): FormState<
     const pathCtx = observable({} as PathContext);
     const state = getInputState(input, triggerValidation, input.getType(), pathCtx);
     state.validate = () => { 
-        return new Promise<boolean>(resolver => {
+        return new Promise<FormValidationResult<T>>(resolver => {
             let form = getFormState();
-            if(form !== undefined){
-                validate(form.model, input).then(result => {
-                    const valid = isValid(result);
-                    if(!valid){
-                        applyErrorsToFormState(result, form as any);
-                    }
-                    resolver(valid);
-                });
+            if(form === undefined){
+                throw new Error('Cannot validate undefined form!');
             }
+
+            validate(form.model, input).then(result => {
+                const valid = isValid(result);
+                if(!valid){
+                    applyErrorsToFormState(result, form as any);
+                }
+                resolver({
+                    result: result,
+                    isValid: valid
+                });
+            });
         });
     };
 
@@ -282,7 +294,7 @@ function getInputModel(input: any): any {
         return res;
     }
 
-    throw 'Could not create input model from ' + JSON.stringify(input);
+    throw new Error('Could not create input model from ' + JSON.stringify(input));
 }
 
 export function getFormModel<T>(state: FormState<T>): ModelState<T> {

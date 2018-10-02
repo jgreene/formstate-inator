@@ -340,7 +340,7 @@ describe('Person formstate', () => {
         state.value.Addresses.value.push(new Address({ StreetAddress1: 'Test2 Street1' }));
 
         expect(state.value.Addresses.value.length).eq(2);
-        //expect(state.value.Addresses.value.getItem(0).value.StreetAddress1.path).eq('.Addresses[0].StreetAddress1');
+        expect(state.value.Addresses.value.getItem(0).value.StreetAddress1.path).eq('.Addresses[0].StreetAddress1');
         expect(state.value.Addresses.value.getItem(0).value.StreetAddress1.value).eq('Test Street1');
         
         state.value.Addresses.value.remove(0);
@@ -383,8 +383,8 @@ describe('Person formstate', () => {
         let person = getValidPerson();
         let state = deriveFormState(person);
 
-        let isValid = await state.validate();
-        expect(isValid).eq(true);
+        let validationResult = await state.validate();
+        expect(validationResult.isValid).eq(true);
     });
 
     it('Can validate entire form', async () => {
@@ -392,8 +392,8 @@ describe('Person formstate', () => {
         person.FirstName = "asdflaskjdfas;ldfkj";
         let state = deriveFormState(person);
 
-        let isValid = await state.validate();
-        expect(isValid).eq(false);
+        let validationResult = await state.validate();
+        expect(validationResult.isValid).eq(false);
 
         expect(state.value.FirstName.errors.length).eq(1);
     });
