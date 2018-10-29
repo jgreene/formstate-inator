@@ -132,9 +132,9 @@ inherits@2:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/inherits/-/inherits-2.0.3.tgz#633c2c83e3da42a502f52466022480f4208261de"
 
-io-ts-derive-class@^0.0.19:
-  version "0.0.19"
-  resolved "https://registry.yarnpkg.com/io-ts-derive-class/-/io-ts-derive-class-0.0.19.tgz#3b7805938cb1c1069c116617cf7e7da084570b42"
+io-ts-derive-class@^0.0.20:
+  version "0.0.20"
+  resolved "https://registry.yarnpkg.com/io-ts-derive-class/-/io-ts-derive-class-0.0.20.tgz#eff30f31b7d518efb23c343d6f48fb307aa4a526"
   dependencies:
     io-ts "^1.3.0"
     moment "^2.22.2"
@@ -253,12 +253,12 @@ typescript@^3.0.1:
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.0.3.tgz#4853b3e275ecdaa27f78fda46dc273a7eb7fc1c8"
 
-validator-inator@^0.0.23:
-  version "0.0.23"
-  resolved "https://registry.yarnpkg.com/validator-inator/-/validator-inator-0.0.23.tgz#1dcc22f7d56d8ef3c962b8d324e589437b9b0a4a"
+validator-inator@^0.0.24:
+  version "0.0.24"
+  resolved "https://registry.yarnpkg.com/validator-inator/-/validator-inator-0.0.24.tgz#74e6091a92878bdfbeaffe619e7660eb5bbe1384"
   dependencies:
     io-ts "^1.3.0"
-    io-ts-derive-class "^0.0.19"
+    io-ts-derive-class "^0.0.20"
     moment "^2.22.2"
     reflect-metadata "^0.1.12"
 

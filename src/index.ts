@@ -321,7 +321,7 @@ function getInputStateImpl<T>(input: T, triggerValidation: Function, type: t.Typ
         type: type,
         value: input,
         errors: errors,
-        visible: false,
+        visible: true,
         disabled: false,
         touched: false,
         required: required,

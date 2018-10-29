@@ -397,4 +397,21 @@ describe('Person formstate', () => {
 
         expect(state.value.FirstName.errors.length).eq(1);
     });
+
+    it('InputState visible should default to true', async () => {
+        let person = getValidPerson();
+        let state = deriveFormState(person);
+        
+        expect(state.value.FirstName.visible).is.true;
+    });
+
+    it('Can set InputState visible to false', async () => {
+        let person = getValidPerson();
+        let state = deriveFormState(person);
+        
+        expect(state.value.FirstName.visible).is.true;
+
+        state.value.FirstName.setVisibility(false);
+        expect(state.value.FirstName.visible).is.false;
+    });
 });
