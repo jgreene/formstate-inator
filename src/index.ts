@@ -107,7 +107,7 @@ export type SetState<T> = {
 export type FormStateType<T> = {
     [P in keyof T]: T[P] extends Function ? never :
                     T[P] extends primitive ? InputState<T[P]> :
-                    T[P] extends Array<infer U> ? U extends primitive ? InputState<InputState<U>[]> : InputState<FormStateArray<U>> :
+                    T[P] extends Array<infer U> ? InputState<FormStateArray<U>> :
                     InputState<FormStateType<T[P]>> & SetState<T[P]>;
 }
 
