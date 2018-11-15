@@ -45,10 +45,12 @@ export interface FormStateArray<T> {
     getItem(index: number): FormState<T>;
     add(item: T): void;
     push(item: T): void;
-    remove(index: number): void;
+    remove(index: number): FormState<T>;
     map<U>(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => U): U[];
     forEach(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => void): void;
     filter(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => any): FormState<T>[];
+    splice(start: number, deleteCount?: number): FormState<T>[];
+    splice(start: number, deleteCount: number, ...inputItems: FormState<T>[]): FormState<T>[];
 }
 
 function getFormStateArray<T>(
@@ -74,15 +76,18 @@ function getFormStateArray<T>(
         push(item: T) {
             this.add(item);
         },
-        remove(index: number) {
+        remove(index: number): FormState<T> {
+            var res: any = [];
             runInAction(() => {
-                this.items.splice(index, 1);
+                res = this.items.splice(index, 1);
                 let items: FormState<T>[] = this.items;
                 for(var i = 0; i < items.length; i++){
                     var item: any = items[i];
                     item.pathCtx.index = i;
                 }
             });
+
+            return res[0]
         },
         map<U>(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => U): U[] {
             return this.items.map(callbackfn);
@@ -92,6 +97,19 @@ function getFormStateArray<T>(
         },
         filter(callbackfn: (value: FormState<T>, index: number, array: FormState<T>[]) => any): FormState<T>[] {
             return this.items.filter(callbackfn);
+        },
+        splice(start: number, deleteCount: number, inputItems?: FormState<T>[]): FormState<T>[] {
+            var res: any = []
+            runInAction(() => {
+                res = inputItems !== undefined ? this.items.splice(start, deleteCount, inputItems) : this.items.splice(start, deleteCount)
+                let items: FormState<T>[] = this.items;
+                for(var i = 0; i < items.length; i++){
+                    var item: any = items[i];
+                    item.pathCtx.index = i;
+                }
+            })
+            
+            return res;
         }
     } as any;
 }

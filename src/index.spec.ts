@@ -414,4 +414,22 @@ describe('Person formstate', () => {
         state.value.FirstName.setVisibility(false);
         expect(state.value.FirstName.visible).is.false;
     });
+
+    it('Can reorder array items', async () => {
+        let person = getValidPerson();
+        person.Addresses.push(new Address({ StreetAddress1: 'Test1' }))
+        person.Addresses.push(new Address({ StreetAddress1: 'Test2' }))
+        person.Addresses.push(new Address({ StreetAddress1: 'Test3' }))
+        person.Addresses.push(new Address({ StreetAddress1: 'Test4' }))
+
+        let state = deriveFormState(person);
+
+        const [address3] = state.value.Addresses.value.splice(2, 1);
+        expect(address3.value.StreetAddress1.value).eq('Test3');
+
+        state.value.Addresses.value.splice(1, 0, address3)
+
+        const result = state.value.Addresses.value.getItem(1);
+        expect(result.value.StreetAddress1.value).eq('Test3');
+    });
 });
