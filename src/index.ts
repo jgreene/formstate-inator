@@ -328,6 +328,19 @@ function getPathFromContext(ctx: PathContext): string {
     return path;
 }
 
+function haveErrorsChanged(originalErrors: string[], newErrors: string[]) {
+    if(originalErrors.length === 0 && newErrors.length === 0)
+    {
+        return false
+    }
+
+    if(originalErrors.length !== newErrors.length){
+        return true;
+    }
+
+    return originalErrors.some((value, index) => value !== newErrors[index])
+}
+
 function getInputStateImpl<T>(input: T, triggerValidation: Function, type: t.Type<any>, pathCtx: PathContext, required: boolean = false): InputState<T> {
     const errors: string[] = [];
     const run = (func: () => void) => {
@@ -350,9 +363,11 @@ function getInputStateImpl<T>(input: T, triggerValidation: Function, type: t.Typ
         },
 
         setErrors(errors: string[]) {
-            run(() => {
-                this.errors = errors;
-            })
+            if(haveErrorsChanged(this.errors, errors)){
+                run(() => {
+                    this.errors = errors;
+                })
+            }
         },
         setVisibility(visible: boolean) {
             run(() => {
