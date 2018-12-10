@@ -3,8 +3,20 @@ import 'mocha';
 
 import * as t from 'io-ts';
 import * as tdc from 'io-ts-derive-class'
+import { ValidationRegistry, ValidationModel} from 'validator-inator'
 
-import { deriveFormState } from './index';
+import { deriveFormState as internalDeriveFormState, FormState } from './index';
+
+type TestValidationContext = {
+    isTest: boolean
+}
+
+const registry = new ValidationRegistry<TestValidationContext>();
+const testCtx = { isTest: true }
+
+function deriveFormState<T extends tdc.ITyped<any>>(input: T): FormState<T> {
+    return internalDeriveFormState(input, registry, testCtx);
+}
 
 type Operators = 'equals' | 'notEquals'
 

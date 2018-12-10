@@ -5,9 +5,26 @@ import * as t from 'io-ts';
 import * as tdc from 'io-ts-derive-class'
 import { computed } from 'mobx';
 import * as moment from 'moment';
-import { register, required } from 'validator-inator';
+import { ValidationRegistry, ValidationModel, required } from 'validator-inator';
 
-import { deriveFormState, FormState } from './index';
+import { deriveFormState as internalDeriveFormState, FormState } from './index';
+
+type TestValidationContext = {
+    isTest: boolean
+}
+
+const registry = new ValidationRegistry<TestValidationContext>();
+function register<T>(
+    klass: new (...args: any[]) => T,
+    map: ValidationModel<T, TestValidationContext>
+): void {
+    registry.register(klass, map);
+}
+const testCtx = { isTest: true }
+
+function deriveFormState<T extends tdc.ITyped<any>>(input: T): FormState<T> {
+    return internalDeriveFormState(input, registry, testCtx);
+}
 
 const CityType = t.type({
     ID: t.number,
@@ -40,7 +57,7 @@ class Person extends tdc.DeriveClass(PersonType) {}
 register<Person>(Person, {
     FirstName: [
         (p) => p.FirstName.length > 8 ? "First Name may not be longer than 8 characters!" : null,
-        (p, original) => original!.FirstName === "FirstName" && p.FirstName === 'Original' ? "Original FirstName validation" : null
+        (p, ctx, original) => original!.FirstName === "FirstName" && p.FirstName === 'Original' ? "Original FirstName validation" : null
     ],
     Birthdate: [
         required(),

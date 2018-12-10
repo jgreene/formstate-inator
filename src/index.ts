@@ -1,6 +1,6 @@
 import { observable, runInAction, extendObservable } from 'mobx';
 
-import { validate, getRequiredFieldsFor, isValid, ValidationResult } from 'validator-inator';
+import { IValidationRegistry, isValid, ValidationResult } from 'validator-inator';
 import * as t from 'io-ts';
 import * as tdc from 'io-ts-derive-class';
 
@@ -53,8 +53,10 @@ export interface FormStateArray<T> {
     splice(start: number, deleteCount: number, ...inputItems: FormState<T>[]): FormState<T>[];
 }
 
-function getFormStateArray<T>(
+function getFormStateArray<T, Ctx>(
     originalItems: Array<FormState<T>>, 
+    registry: IValidationRegistry<Ctx>, 
+    ctx: Ctx,
     triggerValidation: Function, 
     type: t.Type<any>, 
     pathCtx: PathContext
@@ -69,7 +71,7 @@ function getFormStateArray<T>(
         },
         add(item: T) {
             runInAction(() => {
-                let inputState = getInputState(item, triggerValidation, type, observable({ parent: () => pathCtx, index: this.length}));
+                let inputState = getInputState(item, registry, ctx, triggerValidation, type, observable({ parent: () => pathCtx, index: this.length}));
                 this.items.push(inputState);
             });
         },
@@ -172,27 +174,27 @@ type PathContext = {
     name?: string;
 };
 
-function getInputState(input: any, triggerValidation: Function, type: t.Type<any>, pathCtx: PathContext, required: boolean = false): any
+function getInputState<Ctx>(input: any, registry: IValidationRegistry<Ctx>, ctx: Ctx, triggerValidation: Function, type: t.Type<any>, pathCtx: PathContext, required: boolean = false): any
 {
     if(isPrimitive(input))
     {
-        return getInputStateImpl(input, triggerValidation, type, pathCtx, required) as any;
+        return getInputStateImpl(input, registry, ctx, triggerValidation, type, pathCtx, required) as any;
     }
 
     if(input instanceof Array || Array.isArray(input))
     {
         const arrayType: t.ArrayType<any> = type as t.ArrayType<any>;
         const res: any = input.map((entry: any, i: number) => 
-                            getInputState(entry, triggerValidation, arrayType.type, observable({ parent: () => pathCtx, index: i}))
+                            getInputState(entry, registry, ctx, triggerValidation, arrayType.type, observable({ parent: () => pathCtx, index: i}))
                          );
-        const formStateArray: any = getFormStateArray(res, triggerValidation, arrayType.type, pathCtx);
-        return getInputStateImpl(formStateArray, triggerValidation, type, pathCtx) as any;
+        const formStateArray: any = getFormStateArray(res, registry, ctx, triggerValidation, arrayType.type, pathCtx);
+        return getInputStateImpl(formStateArray, registry, ctx, triggerValidation, type, pathCtx) as any;
     }
 
     const keys = Object.keys(input);
     if(keys.length > 0){
         let inputType = getType(input) || type;
-        const requiredFields: any = getRequiredFieldsFor(input.constructor);
+        const requiredFields: any = registry.getRequiredFieldsFor(input.constructor);
         const isRequiredField = (field: string) => requiredFields[field] === true;
 
         const record:any = {};
@@ -200,10 +202,10 @@ function getInputState(input: any, triggerValidation: Function, type: t.Type<any
             const value: any = input[k];
             const required = isRequiredField(k);
             const propType = (inputType as any).props[k];
-            record[k] = getInputState(value, triggerValidation, propType, observable({ parent: () => pathCtx, name: k}), required);
+            record[k] = getInputState(value, registry, ctx, triggerValidation, propType, observable({ parent: () => pathCtx, name: k}), required);
         });
 
-        return getInputStateImpl(record, triggerValidation, type, pathCtx) as any;
+        return getInputStateImpl(record, registry, ctx, triggerValidation, type, pathCtx) as any;
     }
 
     throw new Error('Could not create inputstate from ' + JSON.stringify(input));
@@ -234,10 +236,10 @@ function applyErrorsToFormState(result: any, input: InputState<any>) {
     }
 }
 
-export function deriveFormState<T extends tdc.ITyped<any>>(input: T): FormState<T> {
+export function deriveFormState<T extends tdc.ITyped<any>, Ctx>(input: T, registry: IValidationRegistry<Ctx>, ctx: Ctx): FormState<T> {
 
     const runValidation = function(current: InputState<any>, form: FormState<T>): void {
-        validate(form.model as any, input, current.path).then(result => {
+        registry.validate(form.model as any, ctx, input, current.path).then(result => {
             applyErrorsToFormState(result, form);
         });
     };
@@ -252,7 +254,7 @@ export function deriveFormState<T extends tdc.ITyped<any>>(input: T): FormState<
     };
 
     const pathCtx = observable({} as PathContext);
-    const state = getInputState(input, triggerValidation, input.getType(), pathCtx);
+    const state = getInputState(input, registry, ctx, triggerValidation, input.getType(), pathCtx);
     state.validate = () => { 
         return new Promise<FormValidationResult<T>>(resolver => {
             let form = getFormState();
@@ -260,7 +262,7 @@ export function deriveFormState<T extends tdc.ITyped<any>>(input: T): FormState<
                 throw new Error('Cannot validate undefined form!');
             }
 
-            validate(form.model, input).then(result => {
+            registry.validate(form.model, ctx, input).then(result => {
                 const valid = isValid(result);
                 if(!valid){
                     applyErrorsToFormState(result, form as any);
@@ -341,7 +343,7 @@ function haveErrorsChanged(originalErrors: string[], newErrors: string[]) {
     return originalErrors.some((value, index) => value !== newErrors[index])
 }
 
-function getInputStateImpl<T>(input: T, triggerValidation: Function, type: t.Type<any>, pathCtx: PathContext, required: boolean = false): InputState<T> {
+function getInputStateImpl<T, Ctx>(input: T, registry: IValidationRegistry<Ctx>, ctx: Ctx, triggerValidation: Function, type: t.Type<any>, pathCtx: PathContext, required: boolean = false): InputState<T> {
     const errors: string[] = [];
     const run = (func: () => void) => {
         runInAction(func);
@@ -407,7 +409,7 @@ function getInputStateImpl<T>(input: T, triggerValidation: Function, type: t.Typ
 
         setValue(value: T) {
             run(() => {
-                let newState = getInputState(value, triggerValidation, type, pathCtx);
+                let newState = getInputState(value, registry, ctx, triggerValidation, type, pathCtx);
                 this.value = newState.value;
             })
         }
