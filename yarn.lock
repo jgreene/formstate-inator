@@ -10,12 +10,6 @@
   version "5.2.5"
   resolved "https://registry.yarnpkg.com/@types/mocha/-/mocha-5.2.5.tgz#8a4accfc403c124a0bafe8a9fc61a05ec1032073"
 
-"@types/reflect-metadata@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@types/reflect-metadata/-/reflect-metadata-0.1.0.tgz#592805bdf6d63dd7229773218afeba37ac2eab16"
-  dependencies:
-    reflect-metadata "*"
-
 arrify@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/arrify/-/arrify-1.0.1.tgz#898508da2226f380df904728456849c1501a4b0d"
@@ -212,7 +206,7 @@ pathval@^1.0.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/pathval/-/pathval-1.1.0.tgz#b942e6d4bde653005ef6b71361def8727d0645e0"
 
-reflect-metadata@*, reflect-metadata@^0.1.12:
+reflect-metadata@^0.1.12:
   version "0.1.12"
   resolved "https://registry.yarnpkg.com/reflect-metadata/-/reflect-metadata-0.1.12.tgz#311bf0c6b63cd782f228a81abe146a2bfa9c56f2"
 
@@ -258,10 +252,10 @@ uuid@^3.3.2:
   version "3.3.2"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.3.2.tgz#1b4af4955eb3077c501c23872fc6513811587131"
 
-validator-inator@^0.0.29:
-  version "0.0.29"
-  resolved "https://registry.yarnpkg.com/validator-inator/-/validator-inator-0.0.29.tgz#d80bec6734ac075d797b37ba3ee3c11648744b72"
-  integrity sha512-iYacZgwyEeJ/ypjf37Gwa8UsBSnJcKkdCLhDERV70vSU7v5VdcJam7Y+VDm7c/qOcgzqovKx7QQIcG55bLRGLw==
+validator-inator@^0.0.30:
+  version "0.0.30"
+  resolved "https://registry.yarnpkg.com/validator-inator/-/validator-inator-0.0.30.tgz#0dac2d4932b8cbd08c3ff3504dab5ec44e69913a"
+  integrity sha512-euTwGUkRXfdDI79lGcaeF04uMLIcikXI2wBFtYOnO2mYa1imHTk9uhd8lRLIjlQFAqgATwrAqNiZbwXNvvH0Jw==
   dependencies:
     io-ts "^1.3.0"
     io-ts-derive-class "^0.0.21"

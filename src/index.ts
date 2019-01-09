@@ -36,6 +36,10 @@ export type InputState<TValue> = {
     onChange(newValue: TValue): void;
 };
 
+function isArray(input: any): input is Array<any> {
+    return input && input.slice && Array.isArray(input.slice())
+}
+
 function isInputState(input: any): input is InputState<any> {
     return input && input.isInputStateImpl === true;
 }
@@ -181,7 +185,7 @@ function getInputState<Ctx>(input: any, registry: IValidationRegistry<Ctx>, ctx:
         return getInputStateImpl(input, registry, ctx, triggerValidation, type, pathCtx, required) as any;
     }
 
-    if(input instanceof Array || Array.isArray(input))
+    if(isArray(input))
     {
         const arrayType: t.ArrayType<any> = type as t.ArrayType<any>;
         const res: any = input.map((entry: any, i: number) => 
@@ -212,17 +216,29 @@ function getInputState<Ctx>(input: any, registry: IValidationRegistry<Ctx>, ctx:
 }
 
 function applyErrorsToFormState(result: any, input: InputState<any>) {
-    if(Array.isArray(result)){
-        if(Array.isArray((result as any).errors)){
-            input.setErrors((result as any).errors);
+    if(input === undefined){
+        return;
+    }
+
+    if(isArray(result)){
+        const errors = (result as any).errors
+        const isErrorsArray = isArray(errors)
+        
+        if(isErrorsArray){
+            input.setErrors(errors);
             result.forEach((r, i) => {
                 applyErrorsToFormState(r, input.value.getItem(i));
             });
-            return;
-        } else {
-            input.setErrors(result);
-            return;
         }
+        else {
+            input.setErrors(result);
+        }
+
+        return;
+    }
+
+    if(typeof result !== "object"){
+        return;
     }
 
     let keys = Object.keys(result);
@@ -296,10 +312,11 @@ function getInputModel(input: any): any {
     }
 
     if(isFormStateArray(input)){
+        
         return input.map((i: any) => getInputModel(i));
     }
 
-    if(input instanceof Array || Array.isArray(input)){
+    if(isArray(input)){
         return input.map((i: any) => getInputModel(i));
     }
 
@@ -465,12 +482,12 @@ function deepEquals(a: any, b: any): boolean {
         return false;
     }
 
-    const isArray = Array.isArray(a);
-    const keys = isArray ? [] : Object.keys(a);
+    const isAnArray = isArray(a);
+    const keys = isAnArray ? [] : Object.keys(a);
     
-    if(isArray)
+    if(isAnArray)
     {
-        if(Array.isArray(b))
+        if(isArray(b))
         {
             if(a.length !== b.length)
             {
