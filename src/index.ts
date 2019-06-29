@@ -4,9 +4,7 @@ import { IValidationRegistry, isValid, ValidationResult } from 'validator-inator
 import * as t from 'io-ts';
 import * as tdc from 'io-ts-derive-class';
 
-import * as moment from 'moment';
-
-type primitive = string | number | boolean | null | undefined | moment.Moment;
+type primitive = string | number | boolean | null | undefined | Date;
 
 function isPrimitive(input: any): input is primitive {
     return typeof input === "string"
@@ -14,7 +12,7 @@ function isPrimitive(input: any): input is primitive {
         || typeof input === "number"
         || input === null
         || input === undefined
-        || moment.isMoment(input);
+        || input instanceof Date
 }
 
 export type InputState<TValue> = {

@@ -47,7 +47,7 @@ Play with the below example here: [![Edit k0442jj955](https://codesandbox.io/sta
     class Person extends tdc.DeriveClass(PersonType) {}
 
     const mustHaveContactMethodValidator = (p: Person) => {
-    const validResult = { Email: null, Phone: null, Addresses: null };
+        const validResult = { Email: null, Phone: null, Addresses: null };
         if (p.Email !== null || p.Phone !== null || p.Addresses.length > 0) {
             return validResult;
         }
@@ -77,8 +77,7 @@ Play with the below example here: [![Edit k0442jj955](https://codesandbox.io/sta
 
     function log(message) {
         if (typeof message == "object") {
-            app.innerHTML +=
-            (JSON && JSON.stringify ? JSON.stringify(message) : message) + "<br />";
+            app.innerHTML += (JSON && JSON.stringify ? JSON.stringify(message) : message) + "<br />";
         } else {
             app.innerHTML += message + "<br />";
         }

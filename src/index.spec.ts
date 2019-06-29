@@ -4,8 +4,8 @@ import 'mocha';
 import * as t from 'io-ts';
 import * as tdc from 'io-ts-derive-class'
 import { computed } from 'mobx';
-import * as moment from 'moment';
 import { ValidationRegistry, ValidationModel, required } from 'validator-inator';
+import { parse, isAfter, addDays } from 'date-fns'
 
 import { deriveFormState as internalDeriveFormState, FormState } from './index';
 
@@ -61,7 +61,7 @@ register<Person>(Person, {
     ],
     Birthdate: [
         required(),
-        (p) => p.Birthdate != null && p.Birthdate.isAfter(moment('01/01/2018', 'MM/DD/YYYY').add(-1, "day")) ? 'Cannot be born this year' : null
+        (p) => p.Birthdate != null && isAfter(p.Birthdate, addDays('01/01/2018', -1)) ? 'Cannot be born this year' : null
     ]
 })
 
@@ -72,7 +72,7 @@ register<Address>(Address, {
 const getValidPerson = () => {
     return new Person({
         FirstName: "First",
-        Birthdate: moment('01/01/2017', 'MM/DD/YYYY'),
+        Birthdate: parse('01/01/2017'),
         Address: new Address({ StreetAddress1: "Street1" })
     })
 }
@@ -190,7 +190,7 @@ describe('Person formstate', () => {
 
         expect(state.value.FirstName.errors.length).eq(0);
         
-        let date: any = moment('2017-01-18');
+        let date: any = parse('2017-01-18');
         state.value.Birthdate.onChange(date);
         await sleep(1);
         expect(state.value.Birthdate.errors.length).eq(0);
